@@ -9,11 +9,14 @@ and the state of the two of them combined drive the RGB LED.
 The most interesting thing to me here was connecting arrays to arrays,
 and the fact that an LED colour can be setting to components to the negation of what I might have expected (gotta check the specs).
 
-## Testbench (TODO)
+## Testbench
 
-I haven't done this yet,
-but I think something that just assesses that the outputs are correct
-for each of the button input combinations seems reasonable.
+Manually and explicitly checks the leds values for
+each possible button input combination.
+
+I chose the laborious testing parting for the repetition practice,
+and parting because the efficient for-loop would just regurgitate the
+main module's code; making it not really useful a test.
 
 ## Assertions (TODO)
 
