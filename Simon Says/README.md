@@ -65,6 +65,12 @@ But looking up ways to do decent-enough pseudo-randomness was a fun experience.
 
 I think a failed and a successful run through the game should be sufficient.
 
+Some progress has been made on the successful run.
+In order to reasonably go further,
+the main file needs to be reworked to have more parameterised
+time delays
+(simulating billions of effectively unused cycles is daft).
+
 ## Assertions (TODO)
 
 Figuring out what I can represent how easily will

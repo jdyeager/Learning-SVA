@@ -1,4 +1,4 @@
-`timescale 10ns / 1ns
+`timescale 1ns / 100ps
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: 
@@ -19,26 +19,111 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-
 module simon_tb;
+
+typedef enum {NONE, RIGHT, LEFT, BOTH} lr;
+typedef enum {WHITE, YELLOW, MAGENTA, RED, CYAN, GREEN, BLUE, BLACK} acol;
 
 reg clk;
 reg [1:0] btns;
 wire [1:0] leds;
 wire [0:2] rgb_led;
 
+// Something is wrong with direct enum asignment to an enum,
+//   even when all options are in range.
+//   (lr btns_en = 0; was illegal for instance)
+// Actually, the typedef enum [n:m] seems illegal (based on an error log I got)
+// So bootleg it with a function
+function lr get_lr;
+    input reg [1:0] vals;
+    case (vals)
+        2'b00: return NONE;
+        2'b01: return RIGHT;
+        2'b10: return LEFT;
+        2'b11: return BOTH;
+    endcase
+endfunction
+
+lr btns_en;
+assign btns_en = get_lr(btns);
+
+lr leds_en;
+assign leds_en = get_lr(leds);
+
+function acol get_acol;
+    input reg [0:2] vals;
+    case (vals)
+        3'b000: return WHITE;
+        3'b001: return YELLOW;
+        3'b010: return MAGENTA;
+        3'b011: return RED;
+        3'b100: return CYAN;
+        3'b101: return GREEN;
+        3'b110: return BLUE;
+        3'b111: return BLACK;
+    endcase
+endfunction
+
+acol rgb_en;
+assign rgb_en = get_acol(rgb_led);
+
 simon game (.clk (clk),.btns (btns),.leds (leds),.rgb_led (rgb_led));
+
+function void check_leds;
+    input lr exp_leds;
+    input acol exp_rgb_led;
+    // TODO: string formatting for better info
+    assert (exp_leds == get_lr(leds)) else $error("LED check failed");
+    assert (exp_rgb_led == get_acol(rgb_led)) else $error("LED check failed");
+endfunction
+
+always #2 clk <= ~clk;
 
 //always
 initial begin
     clk <= 0;
-    btns <= 2'b0;
-    #10 btns <= 2'b01;
-    #10 btns <= 2'b10;
-    #10 btns <= 2'b11;
-    #10 btns <= 2'b00;
-end
+    btns <= 2'b00;
 
-always #4 clk <= ~clk;
+    // White on start (checks after rising edge)
+    #3 check_leds(NONE, WHITE);
+    
+    // Check freeze trigger
+    #2 btns <= 2'b11;
+    #2 check_leds(NONE, BLUE);
+    assert (game.state == game.FREEZE) else $error("Not frozen");
+    
+    // Check the reset requires both releases
+    #2 btns <= 2'b10;
+    #2 check_leds(NONE, BLUE);
+    assert (game.state == game.FREEZE) else $error("Premature unfreeze");
+    #2 btns <= 2'b01;
+    #2 check_leds(NONE, BLUE);
+    assert (game.state == game.FREEZE) else $error("Premature unfreeze");
+    
+    // Enter reset state
+    #2 btns <= 2'b00;
+    #2 check_leds(NONE, BLUE);
+    assert (game.state == game.RESET) else $error("Reset not triggered");
+    
+    #4 check_leds(NONE, BLACK);
+    assert (game.state == game.DISPLAY_SETUP) else $error("Reset not complete");
+    assert (game.display == game.LEVEL) else $error("Reset not complete");
+    assert (game.level == 0) else $error("Reset not complete");
+    assert (game.streak == 0) else $error("Reset not complete");
+    // TODO: level level solns here
+    
+    #4 check_leds(NONE, BLACK);
+    assert (game.state == game.DISPLAY) else $error("Did not leave display setup");
+    assert (game.display == game.LEVEL) else $error("Did not leave display setup");
+    
+    #4 check_leds(NONE, YELLOW);
+    assert (game.state == game.DISPLAY) else $error("Did not trigger display");
+    assert (game.display == game.LEVEL) else $error("Did not trigger display");
+    assert (game.counter == 24'h700000) else $error("Did not trigger display");
+    
+//    #(4 * 28'h0700000)
+    
+    #1 $finish;
+end
 
 endmodule

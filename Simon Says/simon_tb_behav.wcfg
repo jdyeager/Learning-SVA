@@ -12,43 +12,60 @@
    </db_ref_list>
    <zoom_setting>
       <ZoomStartTime time="0.000 ns"></ZoomStartTime>
-      <ZoomEndTime time="2,748.001 ns"></ZoomEndTime>
-      <Cursor1Time time="320.000 ns"></Cursor1Time>
+      <ZoomEndTime time="20.001 ns"></ZoomEndTime>
+      <Cursor1Time time="5.333 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="404"></NameColumnWidth>
-      <ValueColumnWidth column_width="190"></ValueColumnWidth>
+      <ValueColumnWidth column_width="184"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="7" />
+   <WVObjectSize size="9" />
    <wvobject fp_name="/simon_tb/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
+      <obj_property name="CustomSignalColor">#FFFFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject fp_name="/simon_tb/btns" type="array">
-      <obj_property name="ElementShortName">btns[1:0]</obj_property>
-      <obj_property name="ObjectShortName">btns[1:0]</obj_property>
-      <obj_property name="isExpanded"></obj_property>
+   <wvobject fp_name="/simon_tb/btns_en" type="array">
+      <obj_property name="ElementShortName">btns_en[31:0]</obj_property>
+      <obj_property name="ObjectShortName">btns_en[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject fp_name="/simon_tb/leds" type="array">
-      <obj_property name="ElementShortName">leds[1:0]</obj_property>
-      <obj_property name="ObjectShortName">leds[1:0]</obj_property>
-      <obj_property name="isExpanded"></obj_property>
+   <wvobject fp_name="/simon_tb/leds_en" type="array">
+      <obj_property name="ElementShortName">leds_en[31:0]</obj_property>
+      <obj_property name="ObjectShortName">leds_en[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject fp_name="/simon_tb/rgb_led" type="array">
-      <obj_property name="ElementShortName">rgb_led[0:2]</obj_property>
-      <obj_property name="ObjectShortName">rgb_led[0:2]</obj_property>
-      <obj_property name="isExpanded"></obj_property>
+   <wvobject fp_name="/simon_tb/rgb_en" type="array">
+      <obj_property name="ElementShortName">rgb_en[31:0]</obj_property>
+      <obj_property name="ObjectShortName">rgb_en[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject fp_name="/simon_tb/game/reset" type="logic">
-      <obj_property name="ElementShortName">reset</obj_property>
-      <obj_property name="ObjectShortName">reset</obj_property>
+   <wvobject fp_name="/simon_tb/game/state" type="array">
+      <obj_property name="ElementShortName">state[31:0]</obj_property>
+      <obj_property name="ObjectShortName">state[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simon_tb/game/counting" type="logic">
-      <obj_property name="ElementShortName">counting</obj_property>
-      <obj_property name="ObjectShortName">counting</obj_property>
+   <wvobject fp_name="/simon_tb/game/display" type="array">
+      <obj_property name="ElementShortName">display[31:0]</obj_property>
+      <obj_property name="ObjectShortName">display[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simon_tb/game/countdown" type="array">
-      <obj_property name="ElementShortName">countdown[31:0]</obj_property>
-      <obj_property name="ObjectShortName">countdown[31:0]</obj_property>
+   <wvobject fp_name="/simon_tb/game/listen" type="array">
+      <obj_property name="ElementShortName">listen[31:0]</obj_property>
+      <obj_property name="ObjectShortName">listen[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simon_tb/game/level" type="array">
+      <obj_property name="ElementShortName">level[5:0]</obj_property>
+      <obj_property name="ObjectShortName">level[5:0]</obj_property>
+      <obj_property name="CustomSignalColor">#800000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simon_tb/game/counter" type="array">
+      <obj_property name="ElementShortName">counter[23:0]</obj_property>
+      <obj_property name="ObjectShortName">counter[23:0]</obj_property>
+      <obj_property name="CustomSignalColor">#800000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
 </wave_config>

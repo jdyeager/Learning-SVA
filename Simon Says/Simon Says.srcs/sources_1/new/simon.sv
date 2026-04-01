@@ -140,7 +140,8 @@ always @(posedge clk) begin
         echo_counter <= 24'h000000;
     // ### Prepare Light Pattern ###
     end else if (state == DISPLAY_SETUP && !freeze_trigger) begin
-        // exclusive to inclusive
+        // exclusive to inclusive ...
+        //    because that somehow ended up working nicely
         counter <= 0;
         state <= DISPLAY;
         if (display == LEVEL) begin
@@ -159,7 +160,7 @@ always @(posedge clk) begin
             if (light_idx < light_end) begin // more lights
                 anti_colour <= light_coms[light_idx + 1].acol;
                 proxy_leds <= light_coms[light_idx + 1].led_on;
-                counter <= light_coms[light_idx + 1].on_dur + light_coms[light_idx + 1].off_dur;
+                counter <= light_coms[light_idx + 1].on_dur + light_coms[light_idx + 1].off_dur - 1;
                 light_idx <= light_idx + 1;
             // ### Transition After Display ###
             end else begin // no more lights
@@ -188,6 +189,7 @@ always @(posedge clk) begin
                     streak <= 0;
                 end
             end
+        //TODO: maybe this should be off_dur - 1
         end else if (counter == light_coms[light_idx].off_dur) begin
             anti_colour <= ABLACK;
             proxy_leds <= 2'b00;
