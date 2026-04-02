@@ -69,6 +69,17 @@ assign rgb_en = get_acol(rgb_led);
 
 simon game (.clk (clk),.btns (btns),.leds (leds),.rgb_led (rgb_led));
 
+// Set timing parameters
+defparam  game.LV_CODE_ON_DUR = 24'h5; // 24'h500000;
+defparam  game.LV_CODE_OFF_DUR = 24'h3; // 24'h200000;
+defparam  game.RES_ON_DUR = 24'h5; // 24'h280000;
+defparam  game.RES_OFF_DUR = 24'h3; // 24'h100000;
+defparam  game.RES_FINAL_OFF_DUR = 24'h4; // 24'h500000;
+defparam  game.SOLN_ON_DUR = 24'h3; // 24'h600000;
+defparam  game.SOLN_OFF_DUR = 24'h3; // 24'h1C0000;
+defparam  game.ECHO_DUR = 24'h2; // 24'h180000;
+defparam  game.IDLE_DELAY_DUR = 24'h3; // 24'h400000;
+
 function void check_leds;
     input lr exp_leds;
     input acol exp_rgb_led;
@@ -121,7 +132,7 @@ initial begin
     assert (game.display == game.LEVEL) else $error("Did not trigger display");
     assert (game.counter == 24'h700000) else $error("Did not trigger display");
     
-//    #(4 * 28'h0700000)
+    #100
     
     #1 $finish;
 end

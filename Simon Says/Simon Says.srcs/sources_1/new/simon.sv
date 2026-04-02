@@ -32,11 +32,23 @@ typedef enum {FREEZE, RESET, DISPLAY_SETUP, DISPLAY, LISTEN_SETUP, LISTEN, LISTE
 typedef enum {NA_DISPLAY, LEVEL, SEQ, RESULT} display_state;
 typedef enum {NA_LISTEN, IDLE, INP, VICTORY} listen_state;
 
+// Constants so I stop messing up the inverted colours
 localparam ABLACK = 3'b111;
 localparam ARED = 3'b011;
 localparam AGREEN = 3'b101;
 localparam ABLUE = 3'b110;
 localparam AWHITE = 3'b000;
+
+// Timing parameters
+parameter LV_CODE_ON_DUR = 24'h500000;
+parameter LV_CODE_OFF_DUR = 24'h200000;
+parameter RES_ON_DUR = 24'h280000;
+parameter RES_OFF_DUR = 24'h100000;
+parameter RES_FINAL_OFF_DUR = 24'h500000;
+parameter SOLN_ON_DUR = 24'h600000;
+parameter SOLN_OFF_DUR = 24'h1C0000;
+parameter ECHO_DUR = 24'h180000;
+parameter IDLE_DELAY_DUR = 24'h400000;
 
 typedef struct {
     reg [0:2] acol;
@@ -68,11 +80,12 @@ generate
 for (i = 0; i < 3; i = i + 1) begin
     assign light_coms[i].acol = 3'b001 << ((level >> (4 - 2*i)) % 4);
     assign light_coms[i].led_on = 2'b00;
-    assign light_coms[i].on_dur = 24'h500000;
-    assign light_coms[i].off_dur = 24'h200000;
+    assign light_coms[i].on_dur = LV_CODE_ON_DUR;
+    assign light_coms[i].off_dur = LV_CODE_OFF_DUR;
 end
 
 // Result Sequence
+//   First "on" needs to have a baked in last-input echo
 for (i = 3; i < 7; i = i + 1)
     assign light_coms[i].acol = correct ? AGREEN : ARED;
 
@@ -80,22 +93,22 @@ assign light_coms[3].led_on = 2'b01 << inp;
 for (i = 4; i < 7; i = i + 1)
     assign light_coms[i].led_on = 2'b00;
 
-assign light_coms[3].on_dur = 24'h180000;
-assign light_coms[4].on_dur = 24'h100000;
+assign light_coms[3].on_dur = ECHO_DUR;
+assign light_coms[4].on_dur = RES_ON_DUR - ECHO_DUR;
 for (i = 5; i < 7; i = i + 1)
-    assign light_coms[i].on_dur = 24'h280000;
+    assign light_coms[i].on_dur = RES_ON_DUR;
 
 assign light_coms[3].off_dur = 24'h000000;
 for (i = 4; i < 6; i = i + 1)
-    assign light_coms[i].off_dur = 24'h100000;
-assign light_coms[6].off_dur = 24'h500000;
+    assign light_coms[i].off_dur = RES_OFF_DUR;
+assign light_coms[6].off_dur = RES_FINAL_OFF_DUR;
 
 // Solution Sequence
 for (i = 7; i < 73; i = i + 1) begin
     assign light_coms[i].acol = ABLACK;
     assign light_coms[i].led_on = 2'b01 << simon_seq[i-7];
-    assign light_coms[i].on_dur = 24'h600000;
-    assign light_coms[i].off_dur = 24'h1C0000;
+    assign light_coms[i].on_dur = SOLN_ON_DUR;
+    assign light_coms[i].off_dur = SOLN_OFF_DUR;
 end
 endgenerate
 
@@ -122,12 +135,14 @@ always @(posedge clk) begin
         state <= FREEZE;
         display <= NA_DISPLAY;
         listen <= NA_LISTEN;
+        proxy_leds <= 2'b00;
         anti_colour <= ABLUE;
     // Freeze -> Reset on botton releases
     end else if (state == FREEZE && !btns[0] && !btns[1]) begin
         state <= RESET;
     // ### Reset Game ###
     end else if (state == RESET) begin
+        proxy_leds <= 2'b00;
         anti_colour <= ABLACK;
         state <= DISPLAY_SETUP;
         display <= LEVEL;
@@ -210,13 +225,14 @@ always @(posedge clk) begin
             if (listen == IDLE || listen == VICTORY) begin
                 state <= LISTEN_DELAY;
                 anti_colour <= ABLACK;
-                counter <= 25'h400000;
+                counter <= IDLE_DELAY_DUR;
             end else if (listen == INP) begin
                 state <= CHECK;
                 inp <= (fall_edges == 2'b01) ? 1'b0 : 1'b1;
                 if (echo) begin
                     proxy_leds <= 2'b00;
                     echo <= 1'b0;
+                    // stop current echo if somehow that fast
                     echo_counter <= 24'h000000;
                 end
             end
@@ -245,7 +261,7 @@ always @(posedge clk) begin
             streak <= streak + 1;
             state <= LISTEN_SETUP;
             echo <= 1'b1;
-            echo_counter <= 24'h180000;
+            echo_counter <= ECHO_DUR;
             proxy_leds <= 2'b01 << inp;
         end else begin
             state <= DISPLAY_SETUP;
