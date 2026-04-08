@@ -20,6 +20,9 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
+// Links with global advice to refer back to
+// https://www.reddit.com/r/FPGA/comments/1f372ju/mixing_blocking_and_nonblocking_assignments_in/
+
 module simon(input clk, input [1:0] btns, output [1:0] leds, output [0:2] rgb_led);
 
 reg [0:2] anti_colour = 3'b111;
@@ -125,6 +128,48 @@ assign fall_edges = btns_old & ~btns;
 logic echo;
 reg [23:0] echo_counter;
 
+// TODO: rework display and display setup to timer is established during setup
+//       colour will be SET during setup and be ACTIVE on display
+
+// inclusive start index
+function integer get_start_idx;
+    if (display == LEVEL) begin
+        return 0;
+    end else if (display == SEQ) begin
+        return 7;
+    end else if (display == RESULT) begin
+        return 3;
+    end
+endfunction
+
+// inclusive end index
+function integer get_end_idx;
+    if (display == LEVEL) begin
+        return 2;
+    end else if (display == SEQ) begin
+        return 6 + seq_len;
+    end else if (display == RESULT) begin
+        return 6;
+    end
+endfunction
+
+function void set_display;
+    input integer idx;
+    anti_colour <= light_coms[idx].acol;
+    proxy_leds <= light_coms[idx].led_on;
+    counter <= light_coms[idx].on_dur + light_coms[idx].off_dur - 1;
+endfunction
+
+
+
+// TODO: get rid of setup phases? ditto reset PHASE?
+//       Any one-cycle phase seems suspect
+//       have setup/segue functions?
+
+// TODO: carve up move into functions?
+
+// TODO: handle debouncing?
+
 always @(posedge clk) begin
     // https://electronics.stackexchange.com/questions/30521/random-bit-sequence-using-verilog
     // https://docs.amd.com/v/u/en-US/xapp052
@@ -157,26 +202,32 @@ always @(posedge clk) begin
     end else if (state == DISPLAY_SETUP && !freeze_trigger) begin
         // exclusive to inclusive ...
         //    because that somehow ended up working nicely
-        counter <= 0;
+        light_idx = get_start_idx();
+        set_display(light_idx);
+//        counter <= 0;
         state <= DISPLAY;
-        if (display == LEVEL) begin
-            light_idx <= -1;
-            light_end <= 2;
-        end else if (display == SEQ) begin
-            light_idx <= 6;
-            light_end <= 6 + seq_len;
-        end else if (display == RESULT) begin
-            light_idx <= 2;
-            light_end <= 6;
-        end
+        light_end <= get_end_idx();
+//        if (display == LEVEL) begin
+//            light_idx <= -1;
+//            light_end <= 2;
+//        end else if (display == SEQ) begin
+//            light_idx <= 6;
+//            light_end <= 6 + seq_len;
+//        end else if (display == RESULT) begin
+//            light_idx <= 2;
+//            light_end <= 6;
+//        end
     // ### Display Light Pattern ###
     end else if (state == DISPLAY && !freeze_trigger) begin
         if (counter == 0) begin
             if (light_idx < light_end) begin // more lights
-                anti_colour <= light_coms[light_idx + 1].acol;
-                proxy_leds <= light_coms[light_idx + 1].led_on;
-                counter <= light_coms[light_idx + 1].on_dur + light_coms[light_idx + 1].off_dur - 1;
-                light_idx <= light_idx + 1;
+                // blocking resolves before non-blocking
+                light_idx = light_idx + 1;
+                set_display(light_idx);
+//                anti_colour <= light_coms[light_idx + 1].acol;
+//                proxy_leds <= light_coms[light_idx + 1].led_on;
+//                counter <= light_coms[light_idx + 1].on_dur + light_coms[light_idx + 1].off_dur - 1;
+//                light_idx <= light_idx + 1;
             // ### Transition After Display ###
             end else begin // no more lights
                 if (display == LEVEL) begin
@@ -204,7 +255,6 @@ always @(posedge clk) begin
                     streak <= 0;
                 end
             end
-        //TODO: maybe this should be off_dur - 1
         end else if (counter == light_coms[light_idx].off_dur) begin
             anti_colour <= ABLACK;
             proxy_leds <= 2'b00;
@@ -225,7 +275,7 @@ always @(posedge clk) begin
             if (listen == IDLE || listen == VICTORY) begin
                 state <= LISTEN_DELAY;
                 anti_colour <= ABLACK;
-                counter <= IDLE_DELAY_DUR;
+                counter <= IDLE_DELAY_DUR - 1;
             end else if (listen == INP) begin
                 state <= CHECK;
                 inp <= (fall_edges == 2'b01) ? 1'b0 : 1'b1;

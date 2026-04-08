@@ -61,6 +61,33 @@ that just is what it is.
 Finally, the lack of randomness was an interesting challenge to deal with.
 But looking up ways to do decent-enough pseudo-randomness was a fun experience.
 
+## Assignment
+
+As I go black and find myself trying to refactor and clean up the code
+(as test-benching has helped show 1-cycle lags or stalls that I feel I
+can remove), I find myself wanting to evaluate something and use
+that result in the same cycle.
+
+This has introduced the motive for me to really try and figure out `=`
+vs `<=`. And I bet that I will be violating conventions in the process.
+I've found these explained in terms of "sequential" and "combinational"
+logic, but even going on to looks those up I feel like I'm
+missing a deeper intuitional **why** of it all. So, I am left
+with vague heuristics:
+- `<=` seems to be the simpler one, updating things simultaneously at the
+  end of the block.
+  (Though what exactly that means I'm a little unclear.)
+  This also seems to be a parallel update across blocks.
+- `=` seems to be a sequential affair at the start of the block.
+  This leads to race conditions across blocks.
+
+I think because of that race-condition sense and simpler behaviour,
+I had defaulted to using `<=`. But now, I am throwing some `=` in
+the beginning for computations that might be necessary for the final assignments.
+I've gotten the sense that this combining may be against dogma,
+but I haven't actually found an explanation that shows it as an error
+issue in my case. (This might be where the SVA stuff really shines.)
+
 ## Test Benches (TODO)
 
 I think a failed and a successful run through the game should be sufficient.
@@ -70,6 +97,17 @@ In order to reasonably go further,
 the main file needs to be reworked to have more parameterised
 time delays
 (simulating billions of effectively unused cycles is daft).
+
+### Things learned
+
+(section to be better incorporated later)
+
+Pseudo-reverse-enum-functions zetta useful for
+displaying more useful/parseable information in the
+wave forms.
+
+Parametrising sources of long stalls also useful
+for reducing simulation time be OoMs.
 
 ## Assertions (TODO)
 
