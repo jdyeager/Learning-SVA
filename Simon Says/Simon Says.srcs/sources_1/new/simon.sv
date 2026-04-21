@@ -52,6 +52,7 @@ parameter SOLN_ON_DUR = 24'h600000;
 parameter SOLN_OFF_DUR = 24'h1C0000;
 parameter ECHO_DUR = 24'h180000;
 parameter IDLE_DELAY_DUR = 24'h400000;
+parameter INITIAL_SEQ = 66'b0;
 
 typedef struct {
     reg [0:2] acol;
@@ -69,8 +70,8 @@ reg [6:0] seq_len;
 assign seq_len = level + 3;
 reg [6:0] streak;
 
-reg [65:0] lfsr = 66'b0;
-reg [0:65] simon_seq; //66'b110001111101011010100001100110001011101010110010000111010101101100;
+reg [65:0] lfsr = INITIAL_SEQ;
+reg [0:65] simon_seq;
 reg inp;
 logic correct;
 assign correct = (simon_seq[streak] == inp);
@@ -162,7 +163,7 @@ endfunction
 
 
 
-// TODO: get rid of setup phases? ditto reset PHASE?
+// TODO: get rid of setup phases? ditto reset PHASE? ditto check PHASE?
 //       Any one-cycle phase seems suspect
 //       have setup/segue functions?
 
@@ -265,6 +266,7 @@ always @(posedge clk) begin
     end else if (state == LISTEN_SETUP && !freeze_trigger) begin
         btns_old <= btns;
         state <= LISTEN;
+        if (echo_counter != 0) echo_counter <= echo_counter - 1;
         if (listen == IDLE) anti_colour <= ABLUE;
         else if (listen == INP) anti_colour <= ABLACK;
         else if (listen == VICTORY) anti_colour <= AWHITE;
@@ -311,7 +313,7 @@ always @(posedge clk) begin
             streak <= streak + 1;
             state <= LISTEN_SETUP;
             echo <= 1'b1;
-            echo_counter <= ECHO_DUR;
+            echo_counter <= ECHO_DUR - 1;
             proxy_leds <= 2'b01 << inp;
         end else begin
             state <= DISPLAY_SETUP;

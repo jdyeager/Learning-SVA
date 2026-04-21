@@ -80,6 +80,7 @@ defparam  game.SOLN_ON_DUR = 24'h3; // 24'h600000;
 defparam  game.SOLN_OFF_DUR = 24'h3; // 24'h1C0000;
 defparam  game.ECHO_DUR = 24'h2; // 24'h180000;
 defparam  game.IDLE_DELAY_DUR = 24'h3; // 24'h400000;
+defparam game.INITIAL_SEQ = 66'b110001111101011010100001100110001011101010110010000111010101101100;
 
 function void check_leds;
     input lr exp_leds;
@@ -94,11 +95,13 @@ reg [0:65] soln;
 integer i;
 integer j;
 
+// YELLOW, MAGENTA, CYAN, WHITE
+
 //always
 initial begin
     clk <= 0;
     btns <= 2'b00;
-
+    
     // White on start (checks after rising edge)
     #3 check_leds(NONE, WHITE, "Boot Victory");
     
@@ -120,57 +123,143 @@ initial begin
     #2 check_leds(NONE, BLUE, "Reset");
     assert (game.state == game.RESET) else $error("Reset not triggered");
     
-    #4 check_leds(NONE, BLACK, "Display Setup (Level)");
-    assert (game.state == game.DISPLAY_SETUP) else $error("Reset not complete");
-    assert (game.display == game.LEVEL) else $error("Reset not complete");
-    assert (game.level == 0) else $error("Reset not complete");
-    assert (game.streak == 0) else $error("Reset not complete");
-    // TODO: level level solns here
-    soln <= game.simon_seq;
-    
     #4;
     
-    for (j = 0; j < 3; j = j + 1) begin
+    // ------ START ------ 
     
-        check_leds(NONE, YELLOW, "Display On");
-        assert (game.state == game.DISPLAY) else $error("Not in display mode");
-        assert (game.display == game.LEVEL) else $error("Not in level display mode");
-        assert (game.counter == game.LV_CODE_ON_DUR + game.LV_CODE_OFF_DUR - 1) else $error("Display counter misbehaving");
+    for (i = 0; i < 64; i = i + 1) begin
         
-        #(4*game.LV_CODE_ON_DUR);
+        check_leds(NONE, BLACK, "Display Setup (Level)");
+        assert (game.state == game.DISPLAY_SETUP) else $error("Reset not complete");
+        assert (game.display == game.LEVEL) else $error("Reset not complete ()");
+        assert (game.level == i) else $error("Reset not complete (level)");
+        assert (game.streak == 0) else $error("Reset not complete (streak)");
+        soln <= game.simon_seq;
         
-        check_leds(NONE, BLACK, "Display Off");
-        assert (game.state == game.DISPLAY) else $error("Not in display mode");
-        assert (game.display == game.LEVEL) else $error("Not in level display mode");
-        assert (game.counter == game.LV_CODE_OFF_DUR - 1) else $error("Display counter misbehaving");
+        #4;
         
-        #(4*game.LV_CODE_OFF_DUR);
-    
+        for (j = 0; j < 3; j = j + 1) begin
+            
+            check_leds(NONE, get_acol(3'b1 << ((game.level & (6'h3 << 2*(2-j))) >> 2*(2-j))), "Display On");
+            assert (game.state == game.DISPLAY) else $error("Not in display mode");
+            assert (game.display == game.LEVEL) else $error("Not in level display mode");
+            assert (game.counter == game.LV_CODE_ON_DUR + game.LV_CODE_OFF_DUR - 1) else $error("Display counter misbehaving");
+            
+            #(4*game.LV_CODE_ON_DUR);
+            
+            check_leds(NONE, BLACK, "Display Off");
+            assert (game.state == game.DISPLAY) else $error("Not in display mode");
+            assert (game.display == game.LEVEL) else $error("Not in level display mode");
+            assert (game.counter == game.LV_CODE_OFF_DUR - 1) else $error("Display counter misbehaving");
+            
+            #(4*game.LV_CODE_OFF_DUR);
+            
+        end
+        
+        check_leds(NONE, BLACK, "Listen Setup (Idle)");
+        assert (game.state == game.LISTEN_SETUP) else $error("Not entering idle");
+        assert (game.listen == game.IDLE) else $error("Not entering idle");
+        
+        #4 check_leds(NONE, BLUE, "Listen (Idle)");
+        assert (game.state == game.LISTEN) else $error("Not idle");
+        assert (game.listen == game.IDLE) else $error("Not idle");
+        
+        #2 btns <= 2'b10;
+        #4 btns <= 2'b00;
+        #2 check_leds(NONE, BLACK, "Listen (Idle)");
+        assert (game.state == game.LISTEN_DELAY) else $error("Idle not over");
+        assert (game.counter == game.IDLE_DELAY_DUR - 1) else $error("Display counter misbehaving");
+        
+        #(4*game.IDLE_DELAY_DUR);
+        
+        check_leds(NONE, BLACK, "Display Setup (Seq)");
+        assert (game.state == game.DISPLAY_SETUP) else $error("Not moving onto sequence display");
+        assert (game.display == game.SEQ) else $error("Not moving onto sequence display");
+        
+        #4;
+        
+        for (j = 0; j < game.level + 3; j = j + 1) begin
+            
+            check_leds(get_lr(2'b01+soln[j]), BLACK, "Display (Seq) On");
+            assert (game.state == game.DISPLAY) else $error("Not displaying sequence");
+            assert (game.display == game.SEQ) else $error("Not displaying sequence");
+            
+            #(4*game.SOLN_ON_DUR);
+            
+            check_leds(NONE, BLACK, "Display (Seq) Off");
+            assert (game.state == game.DISPLAY) else $error("Not displaying sequence");
+            assert (game.display == game.SEQ) else $error("Not displaying sequence");
+            
+            #(4*game.SOLN_OFF_DUR);
+            
+        end
+        
+        check_leds(NONE, BLACK, "Listen Setup (Inp)");
+        assert (game.state == game.LISTEN_SETUP) else $error("Not starting to listen to input");
+        assert (game.listen == game.INP) else $error("Not starting to listen to input");
+        
+        #4 check_leds(NONE, BLACK, "Listen (Inp)");
+        assert (game.state == game.LISTEN) else $error("Not starting to listen to input");
+        assert (game.listen == game.INP) else $error("Not starting to listen to input");
+        
+        #4;
+        
+        // TODO: faster, interupting inputs once 1-cylce phases are cut out
+        // TODO: check streak
+        for (j = 0; j < game.level + 3; j = j + 1) begin
+            
+            #2 btns <= 2'b01 + soln[j];
+            #2;btns <= 2'b00;
+            
+            #4 check_leds(NONE, BLACK, "Check");
+            assert (game.state == game.CHECK) else $error("Not checking input");
+            
+            if (j < game.level + 2) begin
+                #4 check_leds(get_lr(2'b01+soln[j]), BLACK, "Echoing Input");
+                
+                #(4*(game.ECHO_DUR-1));
+            end
+        end
+        
+        #4 check_leds(NONE, BLACK, "Display Setup (Result)");
+        assert (game.state == game.DISPLAY_SETUP) else $error("Not moving onto result display");
+        assert (game.display == game.RESULT) else $error("Not moving onto result display");
+            
+        #4;
+        
+        for (j = 0; j < 3; j = j + 1) begin
+            
+            if (j == 0) begin
+                check_leds(get_lr(2'b01+soln[i+2]), GREEN, "Display (Result + Echo)");
+                assert (game.state == game.DISPLAY) else $error("Not displaying echo and result");
+                assert (game.display == game.RESULT) else $error("Not displaying echo and result");
+                
+                #(4*game.ECHO_DUR);
+                check_leds(NONE, GREEN, "Display (Result)");
+                #(4*(game.RES_ON_DUR-game.ECHO_DUR));
+            end else begin
+                check_leds(NONE, GREEN, "Display (Result)");
+                #(4*game.RES_ON_DUR);
+            end
+            
+            check_leds(NONE, BLACK, "Display (Result) Off");
+            
+            if (j < 2) #(4*game.RES_OFF_DUR);
+            else #(4*game.RES_FINAL_OFF_DUR);
+        
+        end
+        
     end
         
-    check_leds(NONE, BLACK, "Listen Setup (Idle)");
+    check_leds(NONE, BLACK, "Listen Setup (Victory)");
     assert (game.state == game.LISTEN_SETUP) else $error("Not entering idle");
-    assert (game.listen == game.IDLE) else $error("Not entering idle");
-        
-    #4 check_leds(NONE, BLUE, "Listen (Idle)");
+    assert (game.listen == game.VICTORY) else $error("Not entering idle");
+    
+    #4 check_leds(NONE, WHITE, "Listen (Victory)");
     assert (game.state == game.LISTEN) else $error("Not idle");
-    assert (game.listen == game.IDLE) else $error("Not idle");
+    assert (game.listen == game.VICTORY) else $error("Not idle");
     
-    #2 btns <= 2'b10;
-    #4 btns <= 2'b00;
-    #2 check_leds(NONE, BLACK, "Listen (Idle)");
-    assert (game.state == game.LISTEN_DELAY) else $error("Idle not over");
-    assert (game.counter == game.IDLE_DELAY_DUR - 1) else $error("Display counter misbehaving");
-    
-    
-    #(4*game.IDLE_DELAY_DUR);
-    
-    check_leds(NONE, BLACK, "Display Setup (Seq)");
-    assert (game.state == game.DISPLAY_SETUP) else $error("Not moving onto sequence display");
-    assert (game.display == game.SEQ) else $error("Not moving onto sequence display");
-    
-    #20;
-    #1 $finish;
+    #9 $finish;
 end
 
 endmodule
