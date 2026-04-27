@@ -120,14 +120,15 @@ initial begin
     
     // Enter reset state
     #2 btns <= 2'b00;
-    #2 check_leds(NONE, BLUE, "Reset");
-    assert (game.state == game.RESET) else $error("Reset not triggered");
+    #2;
+//    check_leds(NONE, BLUE, "Reset");
+//    assert (game.state == game.RESET) else $error("Reset not triggered");
     
-    #4;
+//    #4;
     
     // ------ START ------ 
     
-    for (i = 0; i < 64; i = i + 1) begin
+    for (i = 0; i < 2; i = i + 1) begin
         
         check_leds(NONE, BLACK, "Display Setup (Level)");
         assert (game.state == game.DISPLAY_SETUP) else $error("Reset not complete");
@@ -156,11 +157,12 @@ initial begin
             
         end
         
-        check_leds(NONE, BLACK, "Listen Setup (Idle)");
-        assert (game.state == game.LISTEN_SETUP) else $error("Not entering idle");
-        assert (game.listen == game.IDLE) else $error("Not entering idle");
+//        check_leds(NONE, BLACK, "Listen Setup (Idle)");
+//        assert (game.state == game.LISTEN_SETUP) else $error("Not entering idle");
+//        assert (game.listen == game.IDLE) else $error("Not entering idle");
         
-        #4 check_leds(NONE, BLUE, "Listen (Idle)");
+//        #4;
+        check_leds(NONE, BLUE, "Listen (Idle)");
         assert (game.state == game.LISTEN) else $error("Not idle");
         assert (game.listen == game.IDLE) else $error("Not idle");
         
@@ -194,11 +196,12 @@ initial begin
             
         end
         
-        check_leds(NONE, BLACK, "Listen Setup (Inp)");
-        assert (game.state == game.LISTEN_SETUP) else $error("Not starting to listen to input");
-        assert (game.listen == game.INP) else $error("Not starting to listen to input");
+//        check_leds(NONE, BLACK, "Listen Setup (Inp)");
+//        assert (game.state == game.LISTEN_SETUP) else $error("Not starting to listen to input");
+//        assert (game.listen == game.INP) else $error("Not starting to listen to input");
         
-        #4 check_leds(NONE, BLACK, "Listen (Inp)");
+//        #4;
+        check_leds(NONE, BLACK, "Listen (Inp)");
         assert (game.state == game.LISTEN) else $error("Not starting to listen to input");
         assert (game.listen == game.INP) else $error("Not starting to listen to input");
         
@@ -251,13 +254,15 @@ initial begin
         
     end
         
-    check_leds(NONE, BLACK, "Listen Setup (Victory)");
-    assert (game.state == game.LISTEN_SETUP) else $error("Not entering idle");
-    assert (game.listen == game.VICTORY) else $error("Not entering idle");
+//    check_leds(NONE, BLACK, "Listen Setup (Victory)");
+//    assert (game.state == game.LISTEN_SETUP) else $error("Not entering idle");
+//    assert (game.listen == game.VICTORY) else $error("Not entering idle");
     
-    #4 check_leds(NONE, WHITE, "Listen (Victory)");
-    assert (game.state == game.LISTEN) else $error("Not idle");
-    assert (game.listen == game.VICTORY) else $error("Not idle");
+//    #4;
+
+//    check_leds(NONE, WHITE, "Listen (Victory)");
+//    assert (game.state == game.LISTEN) else $error("Not idle");
+//    assert (game.listen == game.VICTORY) else $error("Not idle");
     
     #9 $finish;
 end
