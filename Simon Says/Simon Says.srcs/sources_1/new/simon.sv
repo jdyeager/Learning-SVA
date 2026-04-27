@@ -31,7 +31,7 @@ assign rgb_led = anti_colour;
 reg [0:1] proxy_leds = 2'b00;
 assign leds = proxy_leds;
 
-typedef enum {FREEZE, DISPLAY_SETUP, DISPLAY, LISTEN, LISTEN_DELAY, CHECK} game_state;
+typedef enum {FREEZE, DISPLAY, LISTEN, LISTEN_DELAY, CHECK} game_state;
 typedef enum {NA_DISPLAY, LEVEL, SEQ, RESULT} display_state;
 typedef enum {NA_LISTEN, IDLE, INP, VICTORY} listen_state;
 
@@ -69,7 +69,7 @@ listen_state listen = VICTORY;
 reg [5:0] level;
 reg [6:0] seq_len;
 assign seq_len = level + 3;
-reg [6:0] streak;
+reg [6:0] streak = 0;
 
 reg [65:0] lfsr = INITIAL_SEQ;
 reg [0:65] simon_seq;
@@ -83,7 +83,8 @@ genvar i;
 generate
 // Level Sequence
 for (i = 0; i < 3; i = i + 1) begin
-    assign light_coms[i].acol = 3'b001 << ((level >> (4 - 2*i)) % 4);
+    // assign updates before <= in reality, not in simulation
+//    assign light_coms[i].acol = 3'b001 << ((level >> (4 - 2*i)) % 4);
     assign light_coms[i].led_on = 2'b00;
     assign light_coms[i].on_dur = LV_CODE_ON_DUR;
     assign light_coms[i].off_dur = LV_CODE_OFF_DUR;
@@ -130,55 +131,71 @@ assign fall_edges = btns_old & ~btns;
 logic echo;
 reg [23:0] echo_counter;
 
+function void update_level;
+    input reg [5:0] nlv;
+    level = nlv;
+    for (int j = 0; j < 3; j++) begin
+        light_coms[j].acol = 3'b001 << ((nlv >> (4 - 2*j)) % 4);
+    end
+endfunction
+
 // inclusive start index
 function integer get_start_idx;
-    if (display == LEVEL) begin
-        return 0;
-    end else if (display == SEQ) begin
-        return 7;
-    end else if (display == RESULT) begin
-        return 3;
-    end
+    input display_state dsp;
+    case (dsp)
+        LEVEL: return 0;
+        SEQ: return 7;
+        RESULT: return 3;
+        default: return -1; // shouldn't happen
+    endcase
+//    if (display == LEVEL) begin
+//        return 0;
+//    end else if (display == SEQ) begin
+//        return 7;
+//    end else if (display == RESULT) begin
+//        return 3;
+//    end
 endfunction
 
 // inclusive end index
 function integer get_end_idx;
-    if (display == LEVEL) begin
-        return 2;
-    end else if (display == SEQ) begin
-        return 6 + seq_len;
-    end else if (display == RESULT) begin
-        return 6;
-    end
+    input display_state dsp;
+    case (dsp)
+        LEVEL: return 2;
+        SEQ: return 6 + seq_len;
+        RESULT: return 6;
+        default: return -1; // shouldn't happen
+    endcase
+//    if (display == LEVEL) begin
+//        return 2;
+//    end else if (display == SEQ) begin
+//        return 6 + seq_len;
+//    end else if (display == RESULT) begin
+//        return 6;
+//    end
 endfunction
 
 function void set_display;
     input integer idx;
+//    anti_colour = light_coms[idx].acol;
+//    proxy_leds = light_coms[idx].led_on;
+//    counter = light_coms[idx].on_dur + light_coms[idx].off_dur - 1;
     anti_colour <= light_coms[idx].acol;
     proxy_leds <= light_coms[idx].led_on;
     counter <= light_coms[idx].on_dur + light_coms[idx].off_dur - 1;
 endfunction
 
-function void reset;
-    proxy_leds <= 2'b00;
-    anti_colour <= ABLACK;
-    state <= DISPLAY_SETUP;
-    display <= LEVEL;
+
+function void display_setup;
+    input display_state dsp;
+    light_idx = get_start_idx(dsp);
+    set_display(light_idx);
+    state <= DISPLAY;
+    display <= dsp;
     listen <= NA_LISTEN;
-    simon_seq <= lfsr;
-    level <= 6'b000000;
-    counter <= 24'h000000;
-    streak <= 7'b0000000;
-    echo <= 1'b0;
-    echo_counter <= 24'h000000;
+    light_end <= get_end_idx(dsp);
 endfunction
 
-// What is set:
-//      state
-//      listen
-//      display (voided)
-//      anti_colour: indicator light
-//      btns_old: starts being tracked
 function void listen_setup;
     input listen_state lst;
     btns_old <= btns;
@@ -193,6 +210,33 @@ function void listen_setup;
     endcase
 endfunction
 
+function void reset;
+//    level = 6'b000000;
+    update_level(6'b000000);
+    
+    display_setup(LEVEL); // uses level, also starts w/ =
+    // manual display setup
+//    light_idx = 0;
+//    anti_colour <= 3'b001;
+//    proxy_leds <= light_coms[0].led_on;
+//    counter <= light_coms[0].on_dur + light_coms[0].off_dur - 1;
+//    state <= DISPLAY;
+//    display <= LEVEL;
+//    listen <= NA_LISTEN;
+//    light_end <= 2;
+    
+    proxy_leds <= 2'b00;
+//    anti_colour <= ABLACK;
+//    state <= DISPLAY_SETUP;
+//    display <= LEVEL;
+//    listen <= NA_LISTEN;
+    simon_seq <= lfsr;
+//    counter <= 24'h000000;
+    streak <= 7'b0000000;
+    echo <= 1'b0;
+    echo_counter <= 24'h000000;
+endfunction
+
 // TODO: get rid of setup phases? ditto reset PHASE? ditto check PHASE?
 //       Any one-cycle phase seems suspect
 //       have setup/segue functions?
@@ -203,9 +247,6 @@ endfunction
 // TODO: handle debouncing?
 
 always @(posedge clk) begin
-    // https://electronics.stackexchange.com/questions/30521/random-bit-sequence-using-verilog
-    // https://docs.amd.com/v/u/en-US/xapp052
-    lfsr <= {lfsr[64:0], ~(lfsr[65] ^ lfsr[64] ^ lfsr[56] ^ lfsr[55])};
     // ### Capture Reset Command ###
     if (state != FREEZE && freeze_trigger) begin
         // On reset, freeze the game until both buttons are released
@@ -232,14 +273,12 @@ always @(posedge clk) begin
 //        echo <= 1'b0;
 //        echo_counter <= 24'h000000;
     // ### Prepare Light Pattern ###
-    end else if (state == DISPLAY_SETUP && !freeze_trigger) begin
-        // exclusive to inclusive ...
-        //    because that somehow ended up working nicely
-        light_idx = get_start_idx();
-        set_display(light_idx);
-//        counter <= 0;
-        state <= DISPLAY;
-        light_end <= get_end_idx();
+//    end else if (state == DISPLAY_SETUP && !freeze_trigger) begin
+//        light_idx = get_start_idx();
+//        set_display(light_idx);
+////        counter <= 0;
+//        state <= DISPLAY;
+//        light_end <= get_end_idx();
     // ### Display Light Pattern ###
     end else if (state == DISPLAY && !freeze_trigger) begin
         if (counter == 0) begin
@@ -271,9 +310,11 @@ always @(posedge clk) begin
 //                        state <= LISTEN_SETUP;
 //                        listen <= VICTORY;
                     end else begin
-                        state <= DISPLAY_SETUP;
-                        display <= LEVEL;
-                        level <= level + 1;
+//                        state <= DISPLAY_SETUP;
+//                        display <= LEVEL;
+//                        level <= level + 1;
+                        update_level(level + 1);
+                        display_setup(LEVEL);
                     end
                     streak <= 0;
                 end
@@ -322,9 +363,10 @@ always @(posedge clk) begin
             counter <= counter -1;
         else
             if (listen == IDLE) begin
-                state <= DISPLAY_SETUP;
-                display <= SEQ;
-                listen <= NA_LISTEN;
+//                state <= DISPLAY_SETUP;
+//                display <= SEQ;
+//                listen <= NA_LISTEN;
+                display_setup(SEQ);
             end else if (listen == VICTORY) begin
                 reset();
 //                state <= RESET;
@@ -340,11 +382,15 @@ always @(posedge clk) begin
             listen_setup(INP);
 //            state <= LISTEN_SETUP;
         end else begin
-            state <= DISPLAY_SETUP;
-            display <= RESULT;
-            listen <= NA_LISTEN;
+//            state <= DISPLAY_SETUP;
+//            display <= RESULT;
+//            listen <= NA_LISTEN;
+            display_setup(RESULT);
         end
     end
+    // https://electronics.stackexchange.com/questions/30521/random-bit-sequence-using-verilog
+    // https://docs.amd.com/v/u/en-US/xapp052
+    lfsr <= {lfsr[64:0], ~(lfsr[65] ^ lfsr[64] ^ lfsr[56] ^ lfsr[55])};
 end
 
 endmodule

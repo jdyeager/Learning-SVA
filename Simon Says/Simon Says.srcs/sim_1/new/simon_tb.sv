@@ -127,17 +127,17 @@ initial begin
 //    #4;
     
     // ------ START ------ 
+    soln <= game.simon_seq;
     
     for (i = 0; i < 2; i = i + 1) begin
         
-        check_leds(NONE, BLACK, "Display Setup (Level)");
-        assert (game.state == game.DISPLAY_SETUP) else $error("Reset not complete");
-        assert (game.display == game.LEVEL) else $error("Reset not complete ()");
+//        check_leds(NONE, BLACK, "Display Setup (Level)");
+//        assert (game.state == game.DISPLAY_SETUP) else $error("Reset not complete");
+//        assert (game.display == game.LEVEL) else $error("Reset not complete ()");
         assert (game.level == i) else $error("Reset not complete (level)");
         assert (game.streak == 0) else $error("Reset not complete (streak)");
-        soln <= game.simon_seq;
         
-        #4;
+//        #4;
         
         for (j = 0; j < 3; j = j + 1) begin
             
@@ -174,11 +174,11 @@ initial begin
         
         #(4*game.IDLE_DELAY_DUR);
         
-        check_leds(NONE, BLACK, "Display Setup (Seq)");
-        assert (game.state == game.DISPLAY_SETUP) else $error("Not moving onto sequence display");
-        assert (game.display == game.SEQ) else $error("Not moving onto sequence display");
+//        check_leds(NONE, BLACK, "Display Setup (Seq)");
+//        assert (game.state == game.DISPLAY_SETUP) else $error("Not moving onto sequence display");
+//        assert (game.display == game.SEQ) else $error("Not moving onto sequence display");
         
-        #4;
+//        #4;
         
         for (j = 0; j < game.level + 3; j = j + 1) begin
             
@@ -224,11 +224,12 @@ initial begin
             end
         end
         
-        #4 check_leds(NONE, BLACK, "Display Setup (Result)");
-        assert (game.state == game.DISPLAY_SETUP) else $error("Not moving onto result display");
-        assert (game.display == game.RESULT) else $error("Not moving onto result display");
-            
         #4;
+//        check_leds(NONE, BLACK, "Display Setup (Result)");
+//        assert (game.state == game.DISPLAY_SETUP) else $error("Not moving onto result display");
+//        assert (game.display == game.RESULT) else $error("Not moving onto result display");
+            
+//        #4;
         
         for (j = 0; j < 3; j = j + 1) begin
             

@@ -88,6 +88,21 @@ I've gotten the sense that this combining may be against dogma,
 but I haven't actually found an explanation that shows it as an error
 issue in my case. (This might be where the SVA stuff really shines.)
 
+### Update
+
+This has actually bitten me in the butt during subsequent refactors.
+While I had been considering how these two interact,
+I had neglected to consider how they interact with `assign _ = _`.
+I wanted to remove the 1-cycle display colour setup,
+so I wanted to update the level at the start `level = level + 1`,
+have a standing `assign colour[i] = foo(level)` for a blink sequence,
+and then assign the leds at the end `COL_LED <= colour[0]`.
+This worked fine in hardware, but the simulator used the stale `level`
+value for the `assign` evaluation.
+This sort of stove touching is a part of how one learns the dogma,
+the "why" of the dogma, but also the "where".
+
+
 ## Test Benches (TODO)
 
 I think a failed and a successful run through the game should be sufficient.
