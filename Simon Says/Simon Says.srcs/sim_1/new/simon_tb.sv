@@ -212,13 +212,15 @@ initial begin
         for (j = 0; j < game.level + 3; j = j + 1) begin
             
             #2 btns <= 2'b01 + soln[j];
-            #2;btns <= 2'b00;
+            #2 btns <= 2'b00;
             
-            #4 check_leds(NONE, BLACK, "Check");
-            assert (game.state == game.CHECK) else $error("Not checking input");
+//            #4;
+//            check_leds(NONE, BLACK, "Check");
+//            assert (game.state == game.CHECK) else $error("Not checking input");
             
             if (j < game.level + 2) begin
-                #4 check_leds(get_lr(2'b01+soln[j]), BLACK, "Echoing Input");
+                #4;
+                check_leds(get_lr(2'b01+soln[j]), BLACK, "Echoing Input");
                 
                 #(4*(game.ECHO_DUR-1));
             end

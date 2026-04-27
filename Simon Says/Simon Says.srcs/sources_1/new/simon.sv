@@ -31,7 +31,7 @@ assign rgb_led = anti_colour;
 reg [0:1] proxy_leds = 2'b00;
 assign leds = proxy_leds;
 
-typedef enum {FREEZE, DISPLAY, LISTEN, LISTEN_DELAY, CHECK} game_state;
+typedef enum {FREEZE, DISPLAY, LISTEN, LISTEN_DELAY} game_state;
 typedef enum {NA_DISPLAY, LEVEL, SEQ, RESULT} display_state;
 typedef enum {NA_LISTEN, IDLE, INP, VICTORY} listen_state;
 
@@ -75,7 +75,7 @@ reg [65:0] lfsr = INITIAL_SEQ;
 reg [0:65] simon_seq;
 reg inp;
 logic correct;
-assign correct = (simon_seq[streak] == inp);
+//assign correct = (simon_seq[streak] == inp);
 
 rgbt light_coms [0:(3+4+66)-1];
 
@@ -83,7 +83,7 @@ genvar i;
 generate
 // Level Sequence
 for (i = 0; i < 3; i = i + 1) begin
-    // assign updates before <= in reality, not in simulation
+    // assign updates after = in reality, not in simulation
 //    assign light_coms[i].acol = 3'b001 << ((level >> (4 - 2*i)) % 4);
     assign light_coms[i].led_on = 2'b00;
     assign light_coms[i].on_dur = LV_CODE_ON_DUR;
@@ -92,10 +92,10 @@ end
 
 // Result Sequence
 //   First "on" needs to have a baked in last-input echo
-for (i = 3; i < 7; i = i + 1)
-    assign light_coms[i].acol = correct ? AGREEN : ARED;
+//for (i = 3; i < 7; i = i + 1)
+//    assign light_coms[i].acol = correct ? AGREEN : ARED;
 
-assign light_coms[3].led_on = 2'b01 << inp;
+//assign light_coms[3].led_on = 2'b01 << inp;
 for (i = 4; i < 7; i = i + 1)
     assign light_coms[i].led_on = 2'b00;
 
@@ -185,7 +185,7 @@ function void set_display;
     counter <= light_coms[idx].on_dur + light_coms[idx].off_dur - 1;
 endfunction
 
-
+// ### Prepare Light Pattern ###
 function void display_setup;
     input display_state dsp;
     light_idx = get_start_idx(dsp);
@@ -196,6 +196,7 @@ function void display_setup;
     light_end <= get_end_idx(dsp);
 endfunction
 
+// ### Set Waiting Colour ###
 function void listen_setup;
     input listen_state lst;
     btns_old <= btns;
@@ -210,6 +211,7 @@ function void listen_setup;
     endcase
 endfunction
 
+// ### Reset Game ###
 function void reset;
 //    level = 6'b000000;
     update_level(6'b000000);
@@ -235,6 +237,25 @@ function void reset;
     streak <= 7'b0000000;
     echo <= 1'b0;
     echo_counter <= 24'h000000;
+endfunction
+
+// ### Check Input ###
+function void check;
+    correct = (fall_edges == (simon_seq[streak] ? 2'b10 : 2'b01));
+    if (correct && streak < seq_len - 1) begin
+        streak <= streak + 1;
+        echo <= 1'b1;
+        echo_counter <= ECHO_DUR - 1;
+        proxy_leds <= fall_edges;
+        listen_setup(INP);
+    end else begin
+        light_coms[3].led_on = fall_edges;
+        for (int j = 3; j < 7; j++)
+            light_coms[j].acol = correct ? AGREEN : ARED;
+        display_setup(RESULT);
+        echo <= 1'b0;
+        echo_counter <= 0;
+    end
 endfunction
 
 // TODO: get rid of setup phases? ditto reset PHASE? ditto check PHASE?
@@ -342,14 +363,15 @@ always @(posedge clk) begin
                 anti_colour <= ABLACK;
                 counter <= IDLE_DELAY_DUR - 1;
             end else if (listen == INP) begin
-                state <= CHECK;
-                inp <= (fall_edges == 2'b01) ? 1'b0 : 1'b1;
-                if (echo) begin
-                    proxy_leds <= 2'b00;
-                    echo <= 1'b0;
-                    // stop current echo if somehow that fast
-                    echo_counter <= 24'h000000;
-                end
+//                state <= CHECK;
+//                inp <= (fall_edges == 2'b01) ? 1'b0 : 1'b1;
+                check();
+//                if (echo) begin
+//                    proxy_leds <= 2'b00;
+//                    echo <= 1'b0;
+//                    // stop current echo if somehow that fast
+//                    echo_counter <= 24'h000000;
+//                end
             end
         end else if (echo)
             if (echo_counter == 0) begin
@@ -373,20 +395,20 @@ always @(posedge clk) begin
 //                listen <= NA_LISTEN;
             end
     // ### Check Input ###
-    end else if (state == CHECK && !freeze_trigger) begin
-        if (correct && streak < seq_len - 1) begin
-            streak <= streak + 1;
-            echo <= 1'b1;
-            echo_counter <= ECHO_DUR - 1;
-            proxy_leds <= 2'b01 << inp;
-            listen_setup(INP);
-//            state <= LISTEN_SETUP;
-        end else begin
-//            state <= DISPLAY_SETUP;
-//            display <= RESULT;
-//            listen <= NA_LISTEN;
-            display_setup(RESULT);
-        end
+//    end else if (state == CHECK && !freeze_trigger) begin
+//        if (correct && streak < seq_len - 1) begin
+//            streak <= streak + 1;
+//            echo <= 1'b1;
+//            echo_counter <= ECHO_DUR - 1;
+//            proxy_leds <= 2'b01 << inp;
+//            listen_setup(INP);
+////            state <= LISTEN_SETUP;
+//        end else begin
+////            state <= DISPLAY_SETUP;
+////            display <= RESULT;
+////            listen <= NA_LISTEN;
+//            display_setup(RESULT);
+//        end
     end
     // https://electronics.stackexchange.com/questions/30521/random-bit-sequence-using-verilog
     // https://docs.amd.com/v/u/en-US/xapp052
