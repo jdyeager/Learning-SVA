@@ -103,26 +103,32 @@ This sort of stove touching is a part of how one learns the dogma,
 the "why" of the dogma, but also the "where".
 
 
-## Test Benches (TODO)
+## Test Benches
 
-I think a failed and a successful run through the game should be sufficient.
+At the moment I have a simulation of a successful play-through of the game.
+That simulation is laced with asserts at basically every state change.
 
-Some progress has been made on the successful run.
-In order to reasonably go further,
-the main file needs to be reworked to have more parameterised
-time delays
-(simulating billions of effectively unused cycles is daft).
+Several things were done in order to make simulation testing more tenable
+(and by extension, I learned some simple techniques to help debugging/testing).
 
-### Things learned
+First: naturally, fraction-of-a-second-long time delays
+are obviously a huge waste of time to simulate
+(as they are millions of clock cycles).
+The solution to this is to parameterise all these delays and set them
+to significantly smaller numbers in simulation.
 
-(section to be better incorporated later)
+Second: One of the difficulties I had when reading waveforms in simulation
+was seeing `01` and knowing that was the right button being pressed,
+or seeing `010` and knowing that was purple/magenta light.
+The solution for this was similarly fairly simple:
+Create some enums and functions to convert to those enums,
+make variables for those enum-versions,
+and display *those* variables in the wave form viewer.
 
-Pseudo-reverse-enum-functions zetta useful for
-displaying more useful/parseable information in the
-wave forms.
+### Todo
 
-Parametrising sources of long stalls also useful
-for reducing simulation time be OoMs.
+At some point, it would probably behove me to do a failed run-through of
+the game.
 
 ## Assertions (TODO)
 
